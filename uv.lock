@@ -947,7 +947,7 @@ requires-dist = [
     { name = "datasets", specifier = ">=3.0" },
     { name = "fastapi", marker = "extra == 'serve'", specifier = ">=0.115" },
     { name = "numpy", specifier = ">=2.3.5" },
-    { name = "peft", specifier = ">=0.21" },
+    { name = "peft", specifier = ">=0.19.1" },
     { name = "pydantic", specifier = ">=2.9" },
     { name = "scikit-learn", specifier = ">=1.9.1" },
     { name = "torch", specifier = ">=2.6,<2.12" },

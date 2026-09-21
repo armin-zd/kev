@@ -14,17 +14,23 @@ Kev is a family of small decision models built on Qwen3.5 and based on the archi
 
 ## Notebook Compatibility In This Fork
 
-This fork allows PyTorch 2.11 and NumPy 2.3.5 without changing the model code or
-weights. It widens the Torch range to `>=2.6,<2.12`, lowers the NumPy minimum to
-`2.3.5`, and makes the `kev` package installable without accidentally including
-the research datasets or playground. Transformers and PEFT requirements are
-unchanged because the newer Qwen3.5 models depend on those APIs.
+This fork allows PyTorch 2.11, NumPy 2.3.5, and PEFT 0.19.1 for Qwen3 notebook
+inference without changing model weights. It widens the Torch range
+to `>=2.6,<2.12`, lowers the NumPy minimum to `2.3.5` and the PEFT minimum to
+`0.19.1`, and makes the `kev` package installable without accidentally including
+the research datasets or playground. The Transformers requirement is unchanged.
+The lower PEFT bound lets hosts that require PEFT below 0.21 resolve normally;
+do not bypass their dependency constraints with `--frozen` or `--no-deps`.
+The loader translates disabled `use_bdlora: false` adapter metadata to `None`
+before constructing the PEFT config. PEFT 0.19.1 otherwise treats the boolean
+as an enabled variant; PEFT 0.21 rejects it during config validation.
+Checkpoint files are not modified.
 
 To add it to an existing uv-managed notebook project, use that project's normal
 package registry:
 
 ```bash
-uv add "kev @ git+https://github.com/armin-zd/kev"
+uv add --group research "kev @ git+https://github.com/armin-zd/kev"
 ```
 
 The consuming project's constraints determine the final dependency versions.
@@ -37,19 +43,20 @@ fork on the newer notebook stack in a standalone environment:
 
 ```bash
 uv venv --python 3.13
-uv pip install -e . "torch==2.11.0" "numpy==2.3.5" pytest
+uv pip install -e . "torch==2.11.0" "numpy==2.3.5" "peft==0.19.1" pytest
 ```
 
 The offline compatibility tests construct a tiny Qwen3 model and a nonzero LoRA
 adapter locally. They check checkpoint reload, merged/unmerged probability
-agreement, eager/SDPA attention, question isolation, and prefix-cache reuse:
+agreement, eager/SDPA attention, question isolation, prefix-cache reuse,
+newer adapter default metadata, and the notebook dependency constraints:
 
 ```bash
 OMP_NUM_THREADS=2 uv run --no-sync python -m pytest tests/test_model_compatibility.py -q
 ```
 
-The four checks pass on CPU with Python 3.13, Torch 2.11.0, NumPy 2.3.5,
-Transformers 5.17.0, and PEFT 0.21.0. They validate the inference path, not the
+The smoke tests cover CPU with Python 3.13, Torch 2.11.0, NumPy 2.3.5,
+Transformers 5.17.0, and PEFT 0.19.1 / 0.21.0. They validate the inference path, not the
 quality of a released Kev-0.6B checkpoint. They do not establish CUDA,
 mixed-precision, training, or Qwen3.5 hybrid-model parity on the expanded
 dependency range. Run a pinned checkpoint comparison on the intended hardware

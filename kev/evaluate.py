@@ -52,15 +52,18 @@ def load(run, dev, dtype=None, merge=True, attn=None):
         # way, and keep the fp32 adapter unmerged rather than folding it into bf16 weights. fp32 would double the memory and is not
         # what was trained.
         dtype, merge = torch.bfloat16, False
-    import json as _json
-    adapter_cfg = _json.loads(open(f"{run}/adapter_config.json").read())
+    from peft import LoraConfig, PeftModel
+    adapter_cfg = LoraConfig.from_json_file(f"{run}/adapter_config.json")
+    if adapter_cfg.get("use_bdlora") is False:
+        # Some adapters serialize disabled BDLora as False; PEFT expects None.
+        adapter_cfg["use_bdlora"] = None
     merge = merge and os.environ.get("KEV_MERGE", "1") != "0" and not adapter_cfg.get("trainable_token_indices")   # token-trained adapters stay unmerged
     attn = attn or os.environ.get("KEV_ATTN") or None
     tok = load_tokenizer(meta["base"], revision=meta.get("base_revision"))
     m = DecisionModel(meta["base"], tok, dev, lora=None, revision=meta.get("base_revision"), head_dim=meta.get("head_dim", 256),
                       option_isolation=meta.get("option_isolation", False), dtype=torch.float32 if merge else dtype, attn=attn)
-    from peft import PeftModel
-    m.lm = PeftModel.from_pretrained(m.lm, run).to(dev)   # trainable token embeddings, if any, are inside the adapter
+    peft_config = LoraConfig.from_peft_type(**adapter_cfg)
+    m.lm = PeftModel.from_pretrained(m.lm, run, config=peft_config).to(dev)   # trainable token embeddings, if any, are inside the adapter
     scale = float(os.environ.get("KEV_LORA_SCALE", "1"))
     if scale != 1:   # WiSE-FT-style interpolation between the base (0) and the fine-tuned weights (1), at inference, no retraining
         for module in m.lm.modules():
