@@ -12,6 +12,49 @@ Small Jev-like decision models you can train and run yourself.
 
 Kev is a family of small decision models built on Qwen3.5 and based on the architecture described in [Jev's Architecture Unmasked](https://archerhume.com/posts/jevs-architecture-unmasked). You can use the pretrained weights or train your own. The API matches TypeSafe's [System One](https://docs.typesafe.ai/api), so you can point their Python SDK at your local server.
 
+## Notebook Compatibility In This Fork
+
+This fork allows PyTorch 2.11 and NumPy 2.3.5 without changing the model code or
+weights. It widens the Torch range to `>=2.6,<2.12`, lowers the NumPy minimum to
+`2.3.5`, and makes the `kev` package installable without accidentally including
+the research datasets or playground. Transformers and PEFT requirements are
+unchanged because the newer Qwen3.5 models depend on those APIs.
+
+To add it to an existing uv-managed notebook project, use that project's normal
+package registry:
+
+```bash
+uv add "kev @ git+https://github.com/armin-zd/kev"
+```
+
+The consuming project's constraints determine the final dependency versions.
+Restart the notebook kernel after installation. Import `kev.evaluate.load` and
+`kev.api` directly for in-process inference; a separate HTTP server is optional.
+The `serve` extra is only needed for the server and its SDK.
+
+The repository lockfile retains the upstream dependency versions. To try this
+fork on the newer notebook stack in a standalone environment:
+
+```bash
+uv venv --python 3.13
+uv pip install -e . "torch==2.11.0" "numpy==2.3.5" pytest
+```
+
+The offline compatibility tests construct a tiny Qwen3 model and a nonzero LoRA
+adapter locally. They check checkpoint reload, merged/unmerged probability
+agreement, eager/SDPA attention, question isolation, and prefix-cache reuse:
+
+```bash
+OMP_NUM_THREADS=2 uv run --no-sync python -m pytest tests/test_model_compatibility.py -q
+```
+
+The four checks pass on CPU with Python 3.13, Torch 2.11.0, NumPy 2.3.5,
+Transformers 5.17.0, and PEFT 0.21.0. They validate the inference path, not the
+quality of a released Kev-0.6B checkpoint. They do not establish CUDA,
+mixed-precision, training, or Qwen3.5 hybrid-model parity on the expanded
+dependency range. Run a pinned checkpoint comparison on the intended hardware
+before relying on those modes.
+
 ## Highlights
 
 - 0.8B, 4B, and 9B models, with training code and evaluation data.

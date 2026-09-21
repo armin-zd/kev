@@ -17,11 +17,11 @@ classifiers = [
 dependencies = [
     "accelerate>=1.15.0",
     "datasets>=3.0",
-    "numpy>=2.5.3",
+    "numpy>=2.3.5",
     "peft>=0.21",
     "pydantic>=2.9",
     "scikit-learn>=1.9.1",
-    "torch>=2.6,<2.9",
+    "torch>=2.6,<2.12",
     "transformers>=5.17,<6",
 ]
 
@@ -29,6 +29,13 @@ dependencies = [
 Repository = "https://github.com/jaredpalmer/kev"
 Issues = "https://github.com/jaredpalmer/kev/issues"
 "Model cards" = "https://github.com/jaredpalmer/kev/tree/main/docs/model-cards"
+
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["kev"]
 
 [project.optional-dependencies]
 serve = [
